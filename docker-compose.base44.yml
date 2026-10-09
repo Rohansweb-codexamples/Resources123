@@ -1,0 +1,44 @@
+# Base44 sandbox runbook for this repo.
+#
+# This app is a static Vite + React site: there is no server-side app code, so the
+# only service is the Vite dev server, run from the cloned source with live reload
+# on host port 3000 (the preview entry point). The same source builds to static
+# files with `npm run build` for GitHub Pages.
+#
+# Sandbox-only overrides (all gated on BASE44_PREVIEW_MODE === "1" inside
+# vite.config.js, never in shared config):
+#   - BASE44_SANDBOX_HOST_DOMAIN / BASE44_PUBLIC_HOST_SUFFIX -> host allowlist
+#   - __VITE_ADDITIONAL_SERVER_ALLOWED_HOSTS -> extra Vite allowed hosts
+# With BASE44_PREVIEW_MODE unset these are ignored and the dev server accepts only
+# localhost, its original behaviour.
+services:
+  web:
+    image: node:22-bookworm
+    working_dir: /app
+    volumes:
+      - .:/app
+      - node_modules:/app/node_modules
+    ports:
+      - "3000:3000"
+    environment:
+      - BASE44_PREVIEW_MODE
+      - BASE44_SANDBOX_HOST_DOMAIN
+      - BASE44_PUBLIC_HOST_SUFFIX
+      - __VITE_ADDITIONAL_SERVER_ALLOWED_HOSTS
+    command:
+      - sh
+      - -ec
+      - npm install --no-audit --no-fund && exec npm run dev -- --host 0.0.0.0 --port 3000
+    healthcheck:
+      test:
+        - CMD-SHELL
+        - >-
+          node -e "fetch('http://127.0.0.1:3000/').then(r=>process.exit(r.ok?0:1)).catch(()=>process.exit(1))"
+      interval: 10s
+      timeout: 5s
+      retries: 6
+      start_period: 90s
+    restart: on-failure
+
+volumes:
+  node_modules:

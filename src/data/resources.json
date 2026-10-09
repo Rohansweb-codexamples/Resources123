@@ -1,0 +1,56 @@
+[
+  {
+    "id": "seed-pdf-starter-guide",
+    "title": "Starter Guide",
+    "description": "A short sample PDF. Swap the link for your own file — GitHub Pages, Drive, anywhere with a URL.",
+    "category": "pdf",
+    "url": "https://www.w3.org/WAI/ER/tests/xhtml/testfiles/resources/pdf/dummy.pdf",
+    "previewImage": "https://images.unsplash.com/photo-1441974231531-c6227db76b6e?w=640&q=60&auto=format&fit=crop",
+    "createdAt": "2026-01-05"
+  },
+  {
+    "id": "seed-pdf-field-notes",
+    "title": "Field Notes",
+    "description": "A second sample PDF, so you can see more than one file per type.",
+    "category": "pdf",
+    "url": "https://pdfobject.com/pdf/sample.pdf",
+    "previewImage": "https://images.unsplash.com/photo-1501004318641-b39e6451bec6?w=640&q=60&auto=format&fit=crop",
+    "createdAt": "2026-01-06"
+  },
+  {
+    "id": "seed-doc-handbook",
+    "title": "Team Handbook",
+    "description": "A sample Word document link.",
+    "category": "document",
+    "url": "https://calibre-ebook.com/downloads/demos/demo.docx",
+    "previewImage": "https://images.unsplash.com/photo-1518495973542-4542c06a5843?w=640&q=60&auto=format&fit=crop",
+    "createdAt": "2026-01-07"
+  },
+  {
+    "id": "seed-doc-planner",
+    "title": "Planning Sheet",
+    "description": "A sample spreadsheet link.",
+    "category": "document",
+    "url": "https://go.microsoft.com/fwlink/?LinkID=521962",
+    "previewImage": "https://images.unsplash.com/photo-1470071459604-3b5ec3a7fe05?w=640&q=60&auto=format&fit=crop",
+    "createdAt": "2026-01-08"
+  },
+  {
+    "id": "seed-ppt-intro",
+    "title": "Introduction Deck",
+    "description": "A sample PowerPoint presentation.",
+    "category": "presentation",
+    "url": "https://getsamplefiles.com/download/pptx/sample-1.pptx",
+    "previewImage": "https://images.unsplash.com/photo-1502082553048-f009c37129b9?w=640&q=60&auto=format&fit=crop",
+    "createdAt": "2026-01-09"
+  },
+  {
+    "id": "seed-ppt-workshop",
+    "title": "Workshop Slides",
+    "description": "Another sample presentation.",
+    "category": "presentation",
+    "url": "https://raw.githubusercontent.com/apache/poi/trunk/test-data/slideshow/SampleShow.pptx",
+    "previewImage": "https://images.unsplash.com/photo-1466692476868-aef1dfb1e735?w=640&q=60&auto=format&fit=crop",
+    "createdAt": "2026-01-10"
+  }
+]
