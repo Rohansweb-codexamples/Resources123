@@ -1,5 +1,4 @@
 import { useState } from 'react'
-import { ADMIN_EMAIL } from '../lib/auth.js'
 
 export default function LoginModal({ onClose, onSubmit }) {
   const [email, setEmail] = useState('')
@@ -23,15 +22,14 @@ export default function LoginModal({ onClose, onSubmit }) {
         onMouseDown={(event) => event.stopPropagation()}
       >
         <div className="modal-head">
-          <h2 id="login-title">Admin login</h2>
+          <h2 id="login-title">Login</h2>
           <button type="button" className="modal-close" onClick={onClose} aria-label="Close">
             ✕
           </button>
         </div>
 
         <p className="modal-hint">
-          Sign in to add resources and set their preview pictures. Browsing the hub
-          never needs an account.
+          Log in to add and edit resources. Browsing the hub never needs an account.
         </p>
 
         <form className="form" onSubmit={handleSubmit}>
@@ -41,7 +39,6 @@ export default function LoginModal({ onClose, onSubmit }) {
               type="email"
               value={email}
               autoComplete="username"
-              placeholder={ADMIN_EMAIL}
               onChange={(event) => setEmail(event.target.value)}
             />
           </label>
@@ -63,7 +60,7 @@ export default function LoginModal({ onClose, onSubmit }) {
               Cancel
             </button>
             <button type="submit" className="btn btn-primary">
-              Sign in
+              Login
             </button>
           </div>
         </form>

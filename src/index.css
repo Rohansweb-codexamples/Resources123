@@ -82,6 +82,8 @@ h3 {
   display: flex;
   align-items: center;
   gap: 12px;
+  color: inherit;
+  text-decoration: none;
 }
 
 .brand-mark {
@@ -122,7 +124,7 @@ h3 {
   justify-content: flex-end;
 }
 
-.admin-pill {
+.signed-pill {
   font-size: 0.72rem;
   font-weight: 700;
   letter-spacing: 0.06em;
@@ -169,18 +171,6 @@ h3 {
 
 .btn-ghost:hover {
   background: var(--leaf-50);
-}
-
-.btn-open {
-  color: var(--leaf-800);
-  background: var(--leaf-100);
-  border-color: var(--leaf-300);
-  flex: 1;
-  justify-content: center;
-}
-
-.btn-open:hover {
-  background: var(--leaf-300);
 }
 
 .btn-icon {
@@ -320,6 +310,8 @@ h3 {
 .card {
   display: flex;
   flex-direction: column;
+  color: inherit;
+  text-decoration: none;
   background: var(--card);
   border: 1px solid var(--border);
   border-radius: var(--radius);
@@ -413,16 +405,21 @@ h3 {
   overflow: hidden;
 }
 
-.card-actions {
-  display: flex;
-  align-items: center;
-  gap: 10px;
-  padding: 12px 18px 18px;
+.card-foot {
+  padding: 4px 18px 18px;
 }
 
-.card-admin {
-  display: flex;
-  gap: 6px;
+.card-cta {
+  display: inline-flex;
+  align-items: center;
+  gap: 7px;
+  font-size: 0.9rem;
+  font-weight: 700;
+  color: var(--leaf-700);
+}
+
+.card:hover .card-cta {
+  color: var(--leaf-900);
 }
 
 /* ---------- empty state ---------- */
@@ -447,6 +444,151 @@ h3 {
 
 .empty p {
   margin: 0;
+  color: var(--muted);
+}
+
+/* ---------- resource page ---------- */
+.back-link {
+  display: inline-block;
+  margin-bottom: 20px;
+  color: var(--leaf-700);
+  font-weight: 600;
+  font-size: 0.92rem;
+  text-decoration: none;
+}
+
+.back-link:hover {
+  color: var(--leaf-900);
+  text-decoration: underline;
+}
+
+.resource-page {
+  display: grid;
+  grid-template-columns: minmax(0, 1.6fr) minmax(260px, 1fr);
+  gap: 28px;
+  align-items: start;
+}
+
+.resource-viewer {
+  display: flex;
+  align-items: stretch;
+  background: var(--leaf-50);
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  overflow: hidden;
+  box-shadow: var(--shadow-sm);
+  min-height: 460px;
+}
+
+.resource-viewer iframe {
+  width: 100%;
+  min-height: 640px;
+  border: 0;
+  display: block;
+}
+
+.resource-viewer img {
+  width: 100%;
+  height: 100%;
+  max-height: 640px;
+  object-fit: contain;
+}
+
+.resource-viewer .leaf-preview {
+  min-height: 460px;
+}
+
+.resource-info {
+  background: #fff;
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  padding: 22px 24px 24px;
+  box-shadow: var(--shadow-sm);
+}
+
+.resource-title {
+  margin: 12px 0 10px;
+  font-size: 1.7rem;
+  line-height: 1.15;
+}
+
+.resource-desc {
+  margin: 0 0 20px;
+  color: var(--muted);
+}
+
+.resource-actions {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 10px;
+}
+
+.viewer-note {
+  margin: 16px 0 0;
+  color: var(--muted);
+  font-size: 0.84rem;
+}
+
+.type-tag {
+  display: inline-block;
+  font-size: 0.7rem;
+  font-weight: 700;
+  letter-spacing: 0.07em;
+  text-transform: uppercase;
+  color: #fff;
+  background: var(--leaf-800);
+  padding: 4px 10px;
+  border-radius: 999px;
+}
+
+.type-tag-pdf {
+  background: #b3261e;
+}
+
+.type-tag-document {
+  background: #1b5e20;
+}
+
+.type-tag-presentation {
+  background: #b26a00;
+}
+
+/* ---------- form page + notices ---------- */
+.form-page {
+  max-width: 620px;
+  background: #fff;
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  padding: 26px 28px 30px;
+  box-shadow: var(--shadow-sm);
+}
+
+.page-title {
+  margin: 0 0 6px;
+  font-size: 1.6rem;
+}
+
+.page-sub {
+  margin: 0 0 22px;
+  color: var(--muted);
+}
+
+.notice-box {
+  max-width: 520px;
+  background: #fff;
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  padding: 28px;
+  box-shadow: var(--shadow-sm);
+}
+
+.notice-box p {
+  margin: 0 0 18px;
+  color: var(--muted);
+}
+
+.notice {
   color: var(--muted);
 }
 
@@ -640,6 +782,12 @@ h3 {
 }
 
 /* ---------- responsive ---------- */
+@media (max-width: 900px) {
+  .resource-page {
+    grid-template-columns: 1fr;
+  }
+}
+
 @media (max-width: 720px) {
   .header-inner {
     flex-wrap: wrap;

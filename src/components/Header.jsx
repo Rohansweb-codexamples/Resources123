@@ -1,10 +1,10 @@
 import { LeafLogo } from './LeafArt.jsx'
 
-export default function Header({ isAdminUser, onLoginClick, onLogout, onAddClick }) {
+export default function Header({ isSignedIn, onLoginClick, onLogout, onAddClick }) {
   return (
     <header className="site-header">
       <div className="container header-inner">
-        <div className="brand">
+        <a className="brand" href="#/">
           <span className="brand-mark">
             <LeafLogo />
           </span>
@@ -12,24 +12,22 @@ export default function Header({ isAdminUser, onLoginClick, onLogout, onAddClick
             <strong>Leaf Library</strong>
             <small>Resource hub</small>
           </span>
-        </div>
+        </a>
 
         <div className="header-actions">
-          {isAdminUser ? (
+          {isSignedIn ? (
             <>
               <button type="button" className="btn btn-primary" onClick={onAddClick}>
                 + Add resource
               </button>
-              <span className="admin-pill" title="Signed in as admin">
-                Admin
-              </span>
+              <span className="signed-pill">Signed in</span>
               <button type="button" className="btn btn-ghost" onClick={onLogout}>
                 Sign out
               </button>
             </>
           ) : (
             <button type="button" className="btn btn-ghost" onClick={onLoginClick}>
-              Admin login
+              Login
             </button>
           )}
         </div>

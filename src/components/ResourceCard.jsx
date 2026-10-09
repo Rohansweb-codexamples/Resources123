@@ -2,13 +2,13 @@ import { useState } from 'react'
 import { categoryLabel } from '../lib/categories.js'
 import { LeafPreview } from './LeafArt.jsx'
 
-export default function ResourceCard({ resource, isAdminUser, onEdit, onDelete }) {
+export default function ResourceCard({ resource }) {
   const [imageFailed, setImageFailed] = useState(false)
   const showImage = Boolean(resource.previewImage) && !imageFailed
   const label = categoryLabel(resource.category)
 
   return (
-    <article className="card">
+    <a className="card" href={`#/resource/${encodeURIComponent(resource.id)}`}>
       <div className="card-media">
         {showImage ? (
           <img
@@ -28,26 +28,11 @@ export default function ResourceCard({ resource, isAdminUser, onEdit, onDelete }
         {resource.description ? <p className="card-desc">{resource.description}</p> : null}
       </div>
 
-      <div className="card-actions">
-        <a className="btn btn-open" href={resource.url} target="_blank" rel="noreferrer">
-          Open resource
-          <span aria-hidden="true">↗</span>
-        </a>
-        {isAdminUser ? (
-          <div className="card-admin">
-            <button type="button" className="btn-icon" onClick={() => onEdit(resource)}>
-              Edit
-            </button>
-            <button
-              type="button"
-              className="btn-icon btn-danger"
-              onClick={() => onDelete(resource)}
-            >
-              Delete
-            </button>
-          </div>
-        ) : null}
+      <div className="card-foot">
+        <span className="card-cta">
+          View resource <span aria-hidden="true">→</span>
+        </span>
       </div>
-    </article>
+    </a>
   )
 }

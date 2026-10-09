@@ -1,12 +1,15 @@
 import { useEffect, useMemo, useState } from 'react'
 import seedResources from './data/resources.json'
 import { isAdmin } from './lib/auth.js'
+import { navigate, useHashRoute } from './lib/router.js'
 import Header from './components/Header.jsx'
 import FilterBar from './components/FilterBar.jsx'
 import ResourceGrid from './components/ResourceGrid.jsx'
 import LoginModal from './components/LoginModal.jsx'
-import ResourceFormModal from './components/ResourceFormModal.jsx'
+import LoginRequired from './components/LoginRequired.jsx'
 import Footer from './components/Footer.jsx'
+import ResourcePage from './pages/ResourcePage.jsx'
+import ResourceFormPage from './pages/ResourceFormPage.jsx'
 
 const RESOURCES_KEY = 'leaf-library:resources:v1'
 const AUTH_KEY = 'leaf-library:admin:v1'
@@ -30,14 +33,14 @@ function loadResources() {
 }
 
 export default function App() {
+  const route = useHashRoute()
   const [resources, setResources] = useState(loadResources)
-  const [isAdminUser, setIsAdminUser] = useState(
+  const [isSignedIn, setIsSignedIn] = useState(
     () => localStorage.getItem(AUTH_KEY) === '1',
   )
   const [query, setQuery] = useState('')
   const [category, setCategory] = useState('all')
   const [showLogin, setShowLogin] = useState(false)
-  const [formTarget, setFormTarget] = useState(null)
 
   useEffect(() => {
     try {
@@ -46,6 +49,10 @@ export default function App() {
       // storage may be full or blocked; the hub still works for this session
     }
   }, [resources])
+
+  useEffect(() => {
+    window.scrollTo({ top: 0 })
+  }, [route.name, route.id])
 
   const counts = useMemo(() => {
     const base = { all: resources.length, pdf: 0, document: 0, presentation: 0 }
@@ -70,52 +77,75 @@ export default function App() {
   function handleLogin(email, password) {
     if (!isAdmin(email, password)) return false
     localStorage.setItem(AUTH_KEY, '1')
-    setIsAdminUser(true)
+    setIsSignedIn(true)
     setShowLogin(false)
     return true
   }
 
   function handleLogout() {
     localStorage.removeItem(AUTH_KEY)
-    setIsAdminUser(false)
+    setIsSignedIn(false)
   }
 
-  function handleSave(resource) {
+  function saveResource(data) {
+    const id = data.id || newId()
+    const record = { ...data, id }
     setResources((current) => {
-      const exists = resource.id && current.some((item) => item.id === resource.id)
-      if (exists) {
-        return current.map((item) =>
-          item.id === resource.id ? { ...item, ...resource } : item,
-        )
+      if (current.some((item) => item.id === id)) {
+        return current.map((item) => (item.id === id ? { ...item, ...record } : item))
       }
-      return [
-        { ...resource, id: resource.id || newId(), createdAt: new Date().toISOString().slice(0, 10) },
-        ...current,
-      ]
+      return [{ ...record, createdAt: new Date().toISOString().slice(0, 10) }, ...current]
     })
-    setFormTarget(null)
+    return id
   }
 
   function handleDelete(resource) {
     if (!window.confirm(`Delete “${resource.title}”? This cannot be undone.`)) return
     setResources((current) => current.filter((item) => item.id !== resource.id))
+    navigate('/')
   }
 
-  return (
-    <div className="app-shell">
-      <Header
-        isAdminUser={isAdminUser}
-        onLoginClick={() => setShowLogin(true)}
-        onLogout={handleLogout}
-        onAddClick={() => setFormTarget({})}
+  let content
+  if (route.name === 'resource') {
+    const resource = resources.find((item) => item.id === route.id)
+    content = <ResourcePage resource={resource} isSignedIn={isSignedIn} onDelete={handleDelete} />
+  } else if (route.name === 'add') {
+    content = isSignedIn ? (
+      <ResourceFormPage
+        mode="add"
+        onSave={(data) => {
+          saveResource(data)
+          navigate('/')
+        }}
+        onCancel={() => navigate('/')}
       />
-
+    ) : (
+      <LoginRequired onLogin={() => setShowLogin(true)} />
+    )
+  } else if (route.name === 'edit') {
+    const resource = resources.find((item) => item.id === route.id)
+    content =
+      isSignedIn && resource ? (
+        <ResourceFormPage
+          mode="edit"
+          resource={resource}
+          onSave={(data) => {
+            saveResource(data)
+            navigate(`/resource/${data.id}`)
+          }}
+          onCancel={() => navigate(`/resource/${route.id}`)}
+        />
+      ) : (
+        <LoginRequired onLogin={() => setShowLogin(true)} />
+      )
+  } else {
+    content = (
       <main className="container main">
         <section className="hero">
           <h1>Everything you need, neatly gathered.</h1>
           <p>
-            Browse PDFs, documents and presentations freely — no account required.
-            Admins can sign in to add resources and give each one a preview picture.
+            Browse PDFs, documents and presentations freely — no account required. Log
+            in to add resources and give each one a preview picture.
           </p>
         </section>
 
@@ -127,26 +157,26 @@ export default function App() {
           counts={counts}
         />
 
-        <ResourceGrid
-          resources={filtered}
-          isAdminUser={isAdminUser}
-          onEdit={(resource) => setFormTarget(resource)}
-          onDelete={handleDelete}
-        />
+        <ResourceGrid resources={filtered} isSignedIn={isSignedIn} />
       </main>
+    )
+  }
+
+  return (
+    <div className="app-shell">
+      <Header
+        isSignedIn={isSignedIn}
+        onLoginClick={() => setShowLogin(true)}
+        onLogout={handleLogout}
+        onAddClick={() => navigate('/add')}
+      />
+
+      {content}
 
       <Footer />
 
       {showLogin ? (
         <LoginModal onClose={() => setShowLogin(false)} onSubmit={handleLogin} />
-      ) : null}
-
-      {formTarget ? (
-        <ResourceFormModal
-          initial={formTarget.id ? formTarget : null}
-          onClose={() => setFormTarget(null)}
-          onSave={handleSave}
-        />
       ) : null}
     </div>
   )
