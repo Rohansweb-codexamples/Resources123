@@ -2,7 +2,7 @@ import { categoryLabel } from '../lib/categories.js'
 import { isOpenable } from '../lib/embed.js'
 import { LeafPreview } from '../components/LeafArt.jsx'
 
-export default function ResourcePage({ resource, isSignedIn, onDelete }) {
+export default function ResourcePage({ resource, canManage, onDelete }) {
   if (!resource) {
     return (
       <main className="container main">
@@ -43,7 +43,7 @@ export default function ResourcePage({ resource, isSignedIn, onDelete }) {
             <a className="btn btn-primary" href={resource.url} target="_blank" rel="noreferrer">
               {openable ? 'Open in new tab' : 'Open resource'} <span aria-hidden="true">↗</span>
             </a>
-            {isSignedIn ? (
+            {canManage ? (
               <>
                 <a className="btn btn-ghost" href={`#/edit/${encodeURIComponent(resource.id)}`}>
                   Edit

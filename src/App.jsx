@@ -1,58 +1,53 @@
-import { useEffect, useMemo, useState } from 'react'
-import seedResources from './data/resources.json'
-import { isAdmin } from './lib/auth.js'
+import { useCallback, useEffect, useMemo, useState } from 'react'
+import { api } from './lib/api.js'
 import { navigate, useHashRoute } from './lib/router.js'
 import Header from './components/Header.jsx'
 import FilterBar from './components/FilterBar.jsx'
 import ResourceGrid from './components/ResourceGrid.jsx'
-import LoginModal from './components/LoginModal.jsx'
+import AuthModal from './components/AuthModal.jsx'
 import LoginRequired from './components/LoginRequired.jsx'
 import Footer from './components/Footer.jsx'
 import ResourcePage from './pages/ResourcePage.jsx'
 import ResourceFormPage from './pages/ResourceFormPage.jsx'
 
-const RESOURCES_KEY = 'leaf-library:resources:v1'
-const AUTH_KEY = 'leaf-library:admin:v1'
-
-function newId() {
-  if (typeof crypto !== 'undefined' && crypto.randomUUID) return crypto.randomUUID()
-  return `resource-${Date.now()}-${Math.random().toString(16).slice(2)}`
-}
-
-function loadResources() {
-  try {
-    const raw = localStorage.getItem(RESOURCES_KEY)
-    if (raw) {
-      const parsed = JSON.parse(raw)
-      if (Array.isArray(parsed)) return parsed
-    }
-  } catch {
-    // ignore corrupt storage and fall back to the sample resources
-  }
-  return seedResources
-}
-
 export default function App() {
   const route = useHashRoute()
-  const [resources, setResources] = useState(loadResources)
-  const [isSignedIn, setIsSignedIn] = useState(
-    () => localStorage.getItem(AUTH_KEY) === '1',
-  )
+  const [user, setUser] = useState(null)
+  const [resources, setResources] = useState([])
+  const [loading, setLoading] = useState(true)
+  const [loadError, setLoadError] = useState('')
   const [query, setQuery] = useState('')
   const [category, setCategory] = useState('all')
-  const [showLogin, setShowLogin] = useState(false)
+  const [authOpen, setAuthOpen] = useState(false)
 
   useEffect(() => {
+    api
+      .me()
+      .then((data) => setUser(data.user))
+      .catch(() => {})
+  }, [])
+
+  const refresh = useCallback(async () => {
     try {
-      localStorage.setItem(RESOURCES_KEY, JSON.stringify(resources))
-    } catch {
-      // storage may be full or blocked; the hub still works for this session
+      const data = await api.listResources()
+      setResources(data.resources || [])
+      setLoadError('')
+    } catch (error) {
+      setLoadError(error.message)
+    } finally {
+      setLoading(false)
     }
-  }, [resources])
+  }, [])
+
+  useEffect(() => {
+    refresh()
+  }, [refresh])
 
   useEffect(() => {
     window.scrollTo({ top: 0 })
   }, [route.name, route.id])
+
+  const canManage = Boolean(user && user.isAdmin)
 
   const counts = useMemo(() => {
     const base = { all: resources.length, pdf: 0, document: 0, presentation: 0 }
@@ -68,75 +63,72 @@ export default function App() {
       if (category !== 'all' && resource.category !== category) return false
       if (!needle) return true
       return (
-        resource.title.toLowerCase().includes(needle) ||
-        (resource.description || '').toLowerCase().includes(needle)
+        String(resource.title || '').toLowerCase().includes(needle) ||
+        String(resource.description || '').toLowerCase().includes(needle)
       )
     })
   }, [resources, query, category])
 
-  function handleLogin(email, password) {
-    if (!isAdmin(email, password)) return false
-    localStorage.setItem(AUTH_KEY, '1')
-    setIsSignedIn(true)
-    setShowLogin(false)
-    return true
+  async function handleAuth(mode, email, password) {
+    const data = mode === 'signup' ? await api.signup(email, password) : await api.login(email, password)
+    setUser(data.user)
+    setAuthOpen(false)
   }
 
-  function handleLogout() {
-    localStorage.removeItem(AUTH_KEY)
-    setIsSignedIn(false)
-  }
-
-  function saveResource(data) {
-    const id = data.id || newId()
-    const record = { ...data, id }
-    setResources((current) => {
-      if (current.some((item) => item.id === id)) {
-        return current.map((item) => (item.id === id ? { ...item, ...record } : item))
-      }
-      return [{ ...record, createdAt: new Date().toISOString().slice(0, 10) }, ...current]
-    })
-    return id
-  }
-
-  function handleDelete(resource) {
-    if (!window.confirm(`Delete “${resource.title}”? This cannot be undone.`)) return
-    setResources((current) => current.filter((item) => item.id !== resource.id))
+  async function handleLogout() {
+    try {
+      await api.logout()
+    } catch {
+      // ignore — the session is cleared on the client either way
+    }
+    setUser(null)
     navigate('/')
+  }
+
+  async function handleSave(data, id) {
+    if (id) await api.updateResource(id, data)
+    else await api.createResource(data)
+    await refresh()
+    navigate('/')
+  }
+
+  async function handleDelete(resource) {
+    if (!window.confirm(`Delete “${resource.title}”? This cannot be undone.`)) return
+    try {
+      await api.deleteResource(resource.id)
+      await refresh()
+      navigate('/')
+    } catch (error) {
+      window.alert(error.message)
+    }
   }
 
   let content
   if (route.name === 'resource') {
     const resource = resources.find((item) => item.id === route.id)
-    content = <ResourcePage resource={resource} isSignedIn={isSignedIn} onDelete={handleDelete} />
+    content = <ResourcePage resource={resource} canManage={canManage} onDelete={handleDelete} />
   } else if (route.name === 'add') {
-    content = isSignedIn ? (
+    content = canManage ? (
       <ResourceFormPage
         mode="add"
-        onSave={(data) => {
-          saveResource(data)
-          navigate('/')
-        }}
+        onSubmit={(data) => handleSave(data)}
         onCancel={() => navigate('/')}
       />
     ) : (
-      <LoginRequired onLogin={() => setShowLogin(true)} />
+      <LoginRequired signedIn={Boolean(user)} onLogin={() => setAuthOpen(true)} />
     )
   } else if (route.name === 'edit') {
     const resource = resources.find((item) => item.id === route.id)
     content =
-      isSignedIn && resource ? (
+      canManage && resource ? (
         <ResourceFormPage
           mode="edit"
           resource={resource}
-          onSave={(data) => {
-            saveResource(data)
-            navigate(`/resource/${data.id}`)
-          }}
-          onCancel={() => navigate(`/resource/${route.id}`)}
+          onSubmit={(data) => handleSave(data, resource.id)}
+          onCancel={() => navigate(`/resource/${resource.id}`)}
         />
       ) : (
-        <LoginRequired onLogin={() => setShowLogin(true)} />
+        <LoginRequired signedIn={Boolean(user)} onLogin={() => setAuthOpen(true)} />
       )
   } else {
     content = (
@@ -144,8 +136,9 @@ export default function App() {
         <section className="hero">
           <h1>Everything you need, neatly gathered.</h1>
           <p>
-            Browse PDFs, documents and presentations freely — no account required. Log
-            in to add resources and give each one a preview picture.
+            Browse PDFs, documents and presentations freely — no account required.
+            Create an account to sign in; only the admin can add, edit or delete
+            resources.
           </p>
         </section>
 
@@ -157,7 +150,13 @@ export default function App() {
           counts={counts}
         />
 
-        <ResourceGrid resources={filtered} isSignedIn={isSignedIn} />
+        {loading ? (
+          <p className="notice">Loading resources…</p>
+        ) : loadError ? (
+          <p className="notice">{loadError}</p>
+        ) : (
+          <ResourceGrid resources={filtered} canManage={canManage} />
+        )}
       </main>
     )
   }
@@ -165,8 +164,8 @@ export default function App() {
   return (
     <div className="app-shell">
       <Header
-        isSignedIn={isSignedIn}
-        onLoginClick={() => setShowLogin(true)}
+        user={user}
+        onLoginClick={() => setAuthOpen(true)}
         onLogout={handleLogout}
         onAddClick={() => navigate('/add')}
       />
@@ -175,8 +174,8 @@ export default function App() {
 
       <Footer />
 
-      {showLogin ? (
-        <LoginModal onClose={() => setShowLogin(false)} onSubmit={handleLogin} />
+      {authOpen ? (
+        <AuthModal onClose={() => setAuthOpen(false)} onSubmit={handleAuth} />
       ) : null}
     </div>
   )

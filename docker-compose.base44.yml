@@ -1,17 +1,46 @@
 # Base44 sandbox runbook for this repo.
 #
-# This app is a static Vite + React site: there is no server-side app code, so the
-# only service is the Vite dev server, run from the cloned source with live reload
-# on host port 3000 (the preview entry point). The same source builds to static
-# files with `npm run build` for GitHub Pages.
+# Two services, both running from the cloned source:
+#   api — Express API: real accounts (JSON store on a volume) and file uploads.
+#   web — Vite dev server on host port 3000 (the preview entry point), proxying
+#         /api and /uploads to the API so the browser sees a single origin.
 #
-# Sandbox-only overrides (all gated on BASE44_PREVIEW_MODE === "1" inside
-# vite.config.js, never in shared config):
-#   - BASE44_SANDBOX_HOST_DOMAIN / BASE44_PUBLIC_HOST_SUFFIX -> host allowlist
-#   - __VITE_ADDITIONAL_SERVER_ALLOWED_HOSTS -> extra Vite allowed hosts
-# With BASE44_PREVIEW_MODE unset these are ignored and the dev server accepts only
-# localhost, its original behaviour.
+# Sandbox-only overrides, all gated on BASE44_PREVIEW_MODE === "1":
+#   - vite.config.js extends the Vite host allowlist with the sandbox domain.
+#   - BASE44_* values are passed through rather than hardcoded.
+# With the variable unset both services behave normally.
 services:
+  api:
+    image: node:22-bookworm
+    working_dir: /app/server
+    volumes:
+      - .:/app
+      - server_storage:/app/server/storage
+    environment:
+      - PORT=4000
+      - DATA_DIR=/app/server/storage
+      - UPLOAD_DIR=/app/server/storage/uploads
+      - BASE44_PREVIEW_MODE
+    # Placeholders first, platform secrets last so a dashboard value always wins.
+    env_file:
+      - ./.env.base44-defaults
+      - path: /run/base44/app.env
+        required: false
+    command:
+      - sh
+      - -ec
+      - npm install --no-audit --no-fund && exec node index.js
+    healthcheck:
+      test:
+        - CMD-SHELL
+        - >-
+          node -e "fetch('http://127.0.0.1:4000/api/health').then(r=>process.exit(r.ok?0:1)).catch(()=>process.exit(1))"
+      interval: 10s
+      timeout: 5s
+      retries: 6
+      start_period: 60s
+    restart: on-failure
+
   web:
     image: node:22-bookworm
     working_dir: /app
@@ -25,6 +54,10 @@ services:
       - BASE44_SANDBOX_HOST_DOMAIN
       - BASE44_PUBLIC_HOST_SUFFIX
       - __VITE_ADDITIONAL_SERVER_ALLOWED_HOSTS
+      - API_PROXY_TARGET=http://api:4000
+    depends_on:
+      api:
+        condition: service_healthy
     command:
       - sh
       - -ec
@@ -42,3 +75,4 @@ services:
 
 volumes:
   node_modules:
+  server_storage:

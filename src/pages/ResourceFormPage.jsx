@@ -1,11 +1,7 @@
 import ResourceForm from '../components/ResourceForm.jsx'
 
-export default function ResourceFormPage({ mode, resource, onSave, onCancel }) {
+export default function ResourceFormPage({ mode, resource, onSubmit, onCancel }) {
   const editing = mode === 'edit'
-
-  function handleSubmit(data) {
-    onSave(editing ? { ...data, id: resource.id } : data)
-  }
 
   return (
     <main className="container main">
@@ -15,13 +11,13 @@ export default function ResourceFormPage({ mode, resource, onSave, onCancel }) {
       <div className="form-page">
         <h1 className="page-title">{editing ? 'Edit resource' : 'Add a resource'}</h1>
         <p className="page-sub">
-          Paste a link to the file — a PDF, document or presentation — and give it a
-          preview picture.
+          Upload a PDF, document or presentation and give the resource a title. The
+          file is stored on the server so everyone sees it.
         </p>
         <ResourceForm
           initial={editing ? resource : null}
           submitLabel={editing ? 'Save changes' : 'Add resource'}
-          onSubmit={handleSubmit}
+          onSubmit={onSubmit}
           onCancel={onCancel}
         />
       </div>

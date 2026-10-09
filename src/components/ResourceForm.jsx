@@ -1,50 +1,62 @@
 import { useState } from 'react'
 import { FILE_CATEGORIES } from '../lib/categories.js'
 
-const EMPTY = {
-  title: '',
-  description: '',
-  category: 'pdf',
-  url: '',
-  previewImage: '',
+const ACCEPTED = '.pdf,.doc,.docx,.ppt,.pptx,.xls,.xlsx,.txt,.csv,.rtf,.odt,.odp'
+
+function categoryForFile(file) {
+  const extension = file.name.split('.').pop().toLowerCase()
+  if (extension === 'pdf') return 'pdf'
+  if (extension === 'ppt' || extension === 'pptx' || extension === 'odp') return 'presentation'
+  return 'document'
 }
 
 export default function ResourceForm({ initial, submitLabel, onSubmit, onCancel }) {
-  const [form, setForm] = useState(() => ({ ...EMPTY, ...(initial || {}) }))
+  const [form, setForm] = useState({
+    title: initial?.title || '',
+    description: initial?.description || '',
+    category: initial?.category || 'pdf',
+  })
+  const [file, setFile] = useState(null)
+  const [preview, setPreview] = useState(null)
   const [error, setError] = useState('')
+  const [busy, setBusy] = useState(false)
 
   function set(field, value) {
     setForm((current) => ({ ...current, [field]: value }))
   }
 
-  // A picture picked from the device is read into a data URL and kept with the
-  // resource in the browser. Nothing is uploaded to a server, so this keeps
-  // working on GitHub Pages.
-  function handlePreviewFile(event) {
-    const file = event.target.files?.[0]
-    if (!file) return
-    const reader = new FileReader()
-    reader.onload = () => set('previewImage', String(reader.result))
-    reader.readAsDataURL(file)
+  function handleFile(event) {
+    const picked = event.target.files?.[0] || null
+    setFile(picked)
+    if (picked) set('category', categoryForFile(picked))
   }
 
-  function handleSubmit(event) {
+  async function handleSubmit(event) {
     event.preventDefault()
+    if (!initial && !file) {
+      setError('Choose a PDF, document or presentation to upload.')
+      return
+    }
     if (!form.title.trim()) {
       setError('Please add a title.')
       return
     }
-    if (!form.url.trim()) {
-      setError('Please add a link to the resource file.')
-      return
+
+    const data = new FormData()
+    data.append('title', form.title.trim())
+    data.append('description', form.description.trim())
+    data.append('category', form.category)
+    if (file) data.append('file', file)
+    if (preview) data.append('preview', preview)
+
+    setBusy(true)
+    setError('')
+    try {
+      await onSubmit(data)
+    } catch (submitError) {
+      setError(submitError.message)
+      setBusy(false)
     }
-    onSubmit({
-      ...form,
-      title: form.title.trim(),
-      url: form.url.trim(),
-      description: form.description.trim(),
-      previewImage: String(form.previewImage || '').trim(),
-    })
   }
 
   return (
@@ -69,6 +81,13 @@ export default function ResourceForm({ initial, submitLabel, onSubmit, onCancel 
         />
       </label>
 
+      <label className="field field-file">
+        <span>{initial ? 'Replace the file (optional)' : 'Upload the file'}</span>
+        <input type="file" accept={ACCEPTED} onChange={handleFile} />
+      </label>
+      {initial?.fileName ? <p className="file-note">Current file: {initial.fileName}</p> : null}
+      {file ? <p className="file-note">Uploading: {file.name}</p> : null}
+
       <div className="field-row">
         <label className="field">
           <span>Type</span>
@@ -81,40 +100,12 @@ export default function ResourceForm({ initial, submitLabel, onSubmit, onCancel 
           </select>
         </label>
 
-        <label className="field">
-          <span>Link to the file</span>
-          <input
-            type="url"
-            value={form.url}
-            placeholder="https://…"
-            onChange={(event) => set('url', event.target.value)}
-          />
+        <label className="field field-file">
+          <span>Preview picture (optional)</span>
+          <input type="file" accept="image/*" onChange={(event) => setPreview(event.target.files?.[0] || null)} />
         </label>
       </div>
-
-      <label className="field">
-        <span>Preview picture</span>
-        <input
-          type="url"
-          value={form.previewImage.startsWith('data:') ? '' : form.previewImage}
-          placeholder="Paste an image URL, or choose a picture below"
-          onChange={(event) => set('previewImage', event.target.value)}
-        />
-      </label>
-
-      <label className="field field-file">
-        <span>…or choose a picture from your device</span>
-        <input type="file" accept="image/*" onChange={handlePreviewFile} />
-      </label>
-
-      {form.previewImage ? (
-        <div className="preview-thumb">
-          <img src={form.previewImage} alt="Preview" />
-          <button type="button" className="btn-icon" onClick={() => set('previewImage', '')}>
-            Remove picture
-          </button>
-        </div>
-      ) : null}
+      {preview ? <p className="file-note">Preview picture: {preview.name}</p> : null}
 
       {error ? <p className="form-error">{error}</p> : null}
 
@@ -122,8 +113,8 @@ export default function ResourceForm({ initial, submitLabel, onSubmit, onCancel 
         <button type="button" className="btn btn-ghost" onClick={onCancel}>
           Cancel
         </button>
-        <button type="submit" className="btn btn-primary">
-          {submitLabel}
+        <button type="submit" className="btn btn-primary" disabled={busy}>
+          {busy ? 'Saving…' : submitLabel}
         </button>
       </div>
     </form>

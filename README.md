@@ -1,23 +1,23 @@
 # Leaf Library — Resource Hub
 
-A leafy-themed hub for gathering **PDFs, documents and presentations** behind one
-clean, searchable grid. Built as a **static site** (React + Vite) so it can be
-hosted on **GitHub Pages** — resources are stored as **links**, not files on a
-server, so there is nothing to upload or host yourself.
+A leafy-themed hub for **PDFs, documents and presentations**. The frontend is a
+static React + Vite site; a small Express API stores the uploaded files and the
+user accounts, so everyone who visits sees the same library.
 
 ## What it does
 
 - **Public browsing** — anyone can search and filter resources. No account needed.
+- **Uploads** — the admin uploads PDFs, documents and presentations. Files are
+  stored on the server, not in the browser.
+- **Create an account** — anyone can sign up and log in. Accounts are real
+  (server-side, password-hashed).
+- **Only the admin can change the library** — adding, editing and deleting
+  resources is restricted to the admin account. Everyone else can browse.
 - **Blocks, not downloads** — the home page shows resource blocks; clicking one
-  opens that resource's own page. The file itself is never linked from the home
-  page, so you can't download straight from the grid.
-- **PDFs open, don't download** — a PDF resource opens inside its page in the
-  browser's own viewer. Other file types show the preview picture with an "open in
-  a new tab" link.
-- **Optional login** — log in to add and edit resources.
-- **Add resource page** — a dedicated page (`#/add`) for adding a resource, with a
-  title, description, type, the link to the file, and a **preview picture** (paste
-  an image URL or pick a picture from your device).
+  opens that resource's page. The file is never linked directly from the grid.
+- **PDFs open, don't download** — a PDF renders inside its resource page in the
+  browser's own viewer. Other types show the preview picture and an open link.
+- **Preview picture** — each resource can have an optional preview picture.
 
 ## Pages
 
@@ -25,41 +25,47 @@ server, so there is nothing to upload or host yourself.
 | ------------------ | ------------------------------------------- |
 | `#/`               | Home — the searchable grid of blocks        |
 | `#/resource/<id>`  | A single resource, with the in-page viewer  |
-| `#/add`            | Add a resource (requires login)             |
-| `#/edit/<id>`      | Edit a resource (requires login)            |
+| `#/add`            | Upload a resource (admin only)              |
+| `#/edit/<id>`      | Edit a resource (admin only)                |
 
-Routing is hash-based, so it works on GitHub Pages with no server config.
+Routing is hash-based, so a static host needs no server rewrite rules.
 
-## Login
+## How it is put together
 
-Set in [`src/lib/auth.js`](src/lib/auth.js) — only this account can add or edit:
+- `src/` — React frontend. Talks to the API through `src/lib/api.js`.
+- `server/` — Express API (`server/index.js`):
+  - accounts and resources in a JSON file on a volume (`server/storage/data.json`)
+  - uploaded files in `server/storage/uploads`
+  - sessions via an `httpOnly` cookie (`sid`)
+  - passwords hashed with `scrypt`
+- In development the Vite dev server proxies `/api` and `/uploads` to the API, so
+  the browser sees a single origin and the session cookie just works.
 
-```
-email:    rohanwest@rohansweb.co.uk
-password: Ewanandlam100
-```
+## The admin account
 
-> ⚠️ This is a **static site**, so the login is a client-side gate only — the
-> credentials ship inside the bundle and are visible in the page source. It
-> controls who sees the add/edit controls; it is **not** a security boundary. Use
-> a backend if the resources need real protection.
+The admin account is defined by `ADMIN_EMAIL` / `ADMIN_PASSWORD` and is applied
+on every API boot, so a change to `ADMIN_PASSWORD` takes effect on restart.
+`rohanwest@rohansweb.co.uk` is the admin. The password comes from the platform
+secrets file; the value in [`.env.base44-defaults`](.env.base44-defaults) is only
+a placeholder so the app boots, and it is overridden by anything stored in the
+dashboard.
 
-## Where resources live
-
-- Sample entries: [`src/data/resources.json`](src/data/resources.json).
-- When you add or edit a resource in the UI, the change is saved to the browser's
-  `localStorage` (key `leaf-library:resources:v1`). This keeps the app fully static
-  and GitHub-Pages-friendly.
-- Because it is browser storage, added resources are **per browser/device**. To
-  publish a resource for everyone, add it to `src/data/resources.json` and commit
-  (the GitHub Pages workflow redeploys automatically).
+> Only this account can add, edit or delete resources. Accounts that sign up are
+> ordinary accounts.
 
 ## Run locally
 
 ```bash
+# API
+cd server && npm install && ADMIN_EMAIL=you@example.com ADMIN_PASSWORD=secret npm start
+
+# Frontend (separate terminal)
 npm install
 npm run dev     # http://localhost:3000
 ```
+
+The dev server proxies to `http://localhost:4000` by default; set
+`API_PROXY_TARGET` to point somewhere else.
 
 ## Run in the sandbox (Docker)
 
@@ -67,16 +73,21 @@ npm run dev     # http://localhost:3000
 docker compose -f docker-compose.base44.yml up -d --build
 ```
 
-Serves the Vite dev server on host port 3000. Sandbox-only host-allowlist
+Runs the API and the Vite dev server (host port 3000). Sandbox-only host-allowlist
 overrides are gated on `BASE44_PREVIEW_MODE === "1"` in `vite.config.js`; with the
 variable unset the dev server behaves normally (localhost only).
 
-## Deploy to GitHub Pages
+## Deployment
 
-1. Push the repository to GitHub.
-2. Repository **Settings → Pages → Source: GitHub Actions**.
-3. The workflow in [`.github/workflows/deploy.yml`](.github/workflows/deploy.yml)
-   builds the site on every push to `main` and publishes it.
+The frontend is static, but **the API is not** — it needs a host with a persistent
+disk for `data.json` and the uploaded files. **Vercel's serverless functions have
+no persistent filesystem, so this backend cannot run on Vercel as-is.**
 
-`vite.config.js` uses a relative base (`base: './'`), so the site works from a
-project sub-path such as `https://<user>.github.io/Resources123/`.
+- Static host (GitHub Pages, Netlify, Vercel) for the frontend — set
+  `VITE_API_BASE` at build time to the API's URL.
+- A host with a disk (Render, Railway, Fly.io, a VPS) for the API — set
+  `ADMIN_EMAIL` / `ADMIN_PASSWORD` there.
+
+If it must all live on Vercel, the storage has to change first: uploaded files to
+Vercel Blob and the accounts/resources to a hosted database. That is a different
+storage backend, not a config change.

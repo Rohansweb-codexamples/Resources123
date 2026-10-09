@@ -1,0 +1,14 @@
+{
+  "name": "leaf-library-server",
+  "private": true,
+  "version": "1.0.0",
+  "type": "module",
+  "description": "API for Leaf Library — real accounts and file uploads.",
+  "scripts": {
+    "start": "node index.js"
+  },
+  "dependencies": {
+    "express": "^4.21.2",
+    "multer": "^2.0.1"
+  }
+}

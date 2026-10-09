@@ -4,3 +4,5 @@ dist
 *.local
 .env
 .env.*
+!.env.base44-defaults
+server/storage

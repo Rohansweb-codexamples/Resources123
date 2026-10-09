@@ -1,7 +1,7 @@
 import ResourceCard from './ResourceCard.jsx'
 import { LeafPreview } from './LeafArt.jsx'
 
-export default function ResourceGrid({ resources, isSignedIn }) {
+export default function ResourceGrid({ resources, canManage }) {
   if (resources.length === 0) {
     return (
       <div className="empty">
@@ -9,7 +9,7 @@ export default function ResourceGrid({ resources, isSignedIn }) {
         <h3>No resources here yet</h3>
         <p>
           Try a different search, or{' '}
-          {isSignedIn ? <a href="#/add">add one</a> : 'check back soon'}.
+          {canManage ? <a href="#/add">add one</a> : 'check back soon'}.
         </p>
       </div>
     )

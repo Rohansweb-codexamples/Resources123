@@ -1,8 +1,7 @@
 import { defineConfig } from 'vite'
 import react from '@vitejs/plugin-react'
 
-// Relative base so the built site works from any GitHub Pages sub-path
-// (e.g. https://<user>.github.io/Resources123/).
+// Relative base so the built site works from any GitHub Pages sub-path.
 //
 // Sandbox preview: the Vite dev server receives requests whose Host header is
 // "<port>-<sandbox id>.$BASE44_SANDBOX_HOST_DOMAIN" (the sandbox id rotates), so
@@ -20,6 +19,11 @@ if (isPreview) {
   }
 }
 
+// The API runs as its own service, so the dev server proxies /api and /uploads to
+// it. The browser then only ever talks to one origin (port 3000), which keeps the
+// session cookie working. For a non-Docker run point it at localhost:4000.
+const apiTarget = process.env.API_PROXY_TARGET || 'http://localhost:4000'
+
 export default defineConfig({
   base: './',
   plugins: [react()],
@@ -28,5 +32,9 @@ export default defineConfig({
     port: 3000,
     strictPort: true,
     allowedHosts,
+    proxy: {
+      '/api': { target: apiTarget, changeOrigin: true },
+      '/uploads': { target: apiTarget, changeOrigin: true },
+    },
   },
 })
